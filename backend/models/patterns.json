@@ -1,0 +1,1798 @@
+{
+  "Electronic": {
+    "Energetic": [
+      {
+        "kick": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false
+        ],
+        "openhat": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "kick": [
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          true
+        ],
+        "hihat": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "perc1": [
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false
+        ]
+      }
+    ],
+    "Chill": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          true
+        ],
+        "hihat": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ]
+      }
+    ],
+    "Dark": [
+      {
+        "kick": [
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ],
+        "hihat": [
+          true,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true
+        ],
+        "crash": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    ]
+  },
+  "Hip Hop": {
+    "Energetic": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "clap": [
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          true,
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          true,
+          false
+        ],
+        "clap": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          true
+        ]
+      }
+    ],
+    "Chill": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false
+        ],
+        "hihat": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ]
+      }
+    ]
+  },
+  "House": {
+    "Energetic": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "openhat": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true
+        ]
+      }
+    ],
+    "Uplifting": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          false
+        ],
+        "crash": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    ]
+  },
+  "Trap": {
+    "Dark": [
+      {
+        "kick": [
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false
+        ],
+        "snare": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          true
+        ],
+        "perc1": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ]
+      }
+    ],
+    "Energetic": [
+      {
+        "kick": [
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          false,
+          true,
+          true,
+          false,
+          true,
+          true,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "clap": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true
+        ]
+      }
+    ]
+  },
+  "Lo-Fi": {
+    "Chill": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false
+        ],
+        "hihat": [
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false
+        ],
+        "hihat": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false
+        ],
+        "perc1": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false
+        ]
+      }
+    ],
+    "Minimal": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "hihat": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ]
+      }
+    ]
+  },
+  "Ambient": {
+    "Chill": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false
+        ],
+        "hihat": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          true,
+          false
+        ]
+      }
+    ],
+    "Uplifting": [
+      {
+        "kick": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "snare": [
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false
+        ],
+        "hihat": [
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true,
+          false,
+          true
+        ],
+        "openhat": [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      }
+    ]
+  },
+  "Bass House / Hybrid Trap": {
+    "Energetic": [
+      {
+        "meta": {
+          "style": "Levity-inspired",
+          "energy": "high",
+          "swing": 0.58,
+          "groove_type": "syncopated"
+        },
+        "kick": [
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": -0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          }
+        ],
+        "snare": [
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.95,
+            "offset": 0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          }
+        ],
+        "hihat": [
+          {
+            "hit": true,
+            "velocity": 0.7,
+            "offset": 0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.5,
+            "offset": -0.02
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": 0.02
+          },
+          {
+            "hit": true,
+            "velocity": 0.6,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.75,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.00
+          },
+          {
+            "hit": true,
+            "velocity": 0.6,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.01
+          },
+          {
+            "hit": true,
+            "velocity": 0.7,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          }
+        ],
+        "openhat": [
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          }
+        ]
+      },
+      {
+        "meta": {
+          "style": "Levity-inspired",
+          "energy": "high",
+          "swing": 0.60,
+          "groove_type": "bouncy"
+        },
+        "kick": [
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": -0.01
+          },
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.95,
+            "offset": -0.02
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.01
+          }
+        ],
+        "snare": [
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 1.0,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.02
+          }
+        ],
+        "hihat": [
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": 0.01
+          },
+          {
+            "hit": true,
+            "velocity": 0.6,
+            "offset": -0.02
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.02
+          },
+          {
+            "hit": true,
+            "velocity": 0.7,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.01
+          },
+          {
+            "hit": true,
+            "velocity": 0.75,
+            "offset": 0.00
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.00
+          },
+          {
+            "hit": true,
+            "velocity": 0.65,
+            "offset": -0.01
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.85,
+            "offset": 0.02
+          },
+          {
+            "hit": true,
+            "velocity": 0.8,
+            "offset": 0.00
+          },
+          {
+            "hit": false
+          },
+          {
+            "hit": true,
+            "velocity": 0.9,
+            "offset": 0.01
+          },
+          {
+            "hit": true,
+            "velocity": 0.7,
+            "offset": -0.02
+          }
+        ]
+      }
+    ]
+  }
+}
