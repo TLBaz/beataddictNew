@@ -1,7 +1,7 @@
 import { FlipVertical, Save, Shuffle, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { AIWorkflow } from '../../ai/AIWorkflow';
-import { formatDuration, isSupportedAudioFile, loadAudioFile, type LoadedSample } from '../../audio/sampleManager';
+import { formatDuration, generateDrumSamples, getSampleBufferByInstrument, isSupportedAudioFile, loadAudioFile, type DrumSample, type LoadedSample } from '../../audio/sampleManager';
 import { useToast } from '../../hooks/use-toast';
 import { useMixStore } from '../../stores/mixStore';
 import { runSystemHealthCheck, type HealthCheckResult } from '../../system/healthCheck';
@@ -15,7 +15,9 @@ const INSTRUMENTS = [
   { id: 'clap', name: 'Clap', emoji: '👏', color: 'border-orange-400', accentColor: 'bg-orange-400' },
   { id: 'crash', name: 'Crash', emoji: '💥', color: 'border-red-400', accentColor: 'bg-red-400' },
   { id: 'perc1', name: 'Perc 1', emoji: '🎶', color: 'border-purple-500', accentColor: 'bg-purple-500' },
-];
+] as const;
+
+type InstrumentId = (typeof INSTRUMENTS)[number]['id'];
 
 type Pattern = Record<string, boolean[]>;
 
@@ -36,15 +38,32 @@ export const Sequencer = () => {
   const [savedPatterns, setSavedPatterns] = useState<Array<{ id: string; name: string; genre: string; mood: string; style: string; pattern: Pattern }>>([]);
   const [selectedSavedPatternId, setSelectedSavedPatternId] = useState('');
   const [loadedSamples, setLoadedSamples] = useState<LoadedSample[]>([]);
+  const [lastGenerationSummary, setLastGenerationSummary] = useState('');
+  const [drumSamples, setDrumSamples] = useState<DrumSample[]>([]);
   const [sampleLoadError, setSampleLoadError] = useState('');
   const [healthResults, setHealthResults] = useState<HealthCheckResult[] | null>(null);
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<number | null>(null);
+
+  // ── Groove state ──────────────────────────────────────────────
+  const [swing, setSwing] = useState(55);
+  const [shuffle, setShuffle] = useState(25);
+  const [humanize, setHumanize] = useState(18);
+  const [velocityDynamics, setVelocityDynamics] = useState(70);
+  const [grooveVelocities, setGrooveVelocities] = useState<Record<string, number[]> | null>(null);
+  const [grooveTiming, setGrooveTiming] = useState<Record<string, number[]> | null>(null);
+  const [showGroovePanel, setShowGroovePanel] = useState(false);
 
   const PATTERN_LIBRARY_KEY = 'beataddicts_saved_patterns';
   const genreOptions = ['Tech House', 'Deep House', 'Techno', 'Minimal', 'Progressive', 'Acid', 'Electro', 'House', 'Bass House / Hybrid Trap', 'Trap', 'Lo-Fi', 'Ambient'];
   const moodOptions = ['Energetic', 'Chill', 'Dark', 'Uplifting', 'Minimal', 'Epic'];
   const styleOptions = ['Topline Tech House', 'Progressive House', 'Melodic Electro', 'Bass House Groove', 'Trap Punch', 'Lo-Fi Pocket', 'Ambient Pulse'];
+  const generatorPresets = [
+    { id: 'pulse-drive', label: 'Pulse Drive', blurb: 'Punchy groove with bright hats', genre: 'Tech House', mood: 'Energetic', style: 'Topline Tech House', complexity: 72, density: 68 },
+    { id: 'midnight-glow', label: 'Midnight Glow', blurb: 'Deep texture and hypnotic swing', genre: 'Deep House', mood: 'Chill', style: 'Progressive House', complexity: 58, density: 54 },
+    { id: 'neon-rhythm', label: 'Neon Rhythm', blurb: 'Sharp drums and late-night energy', genre: 'Techno', mood: 'Dark', style: 'Melodic Electro', complexity: 80, density: 74 },
+  ] as const;
 
   const tracks = useMixStore(state => state.tracks);
   const updateTrack = useMixStore(state => state.updateTrack);
@@ -58,7 +77,7 @@ export const Sequencer = () => {
     return initialPattern;
   });
 
-  const toggleStep = (instrumentId: string, stepIndex: number) => {
+  const toggleStep = (instrumentId: InstrumentId, stepIndex: number) => {
     setPattern((prev) => ({
       ...prev,
       [instrumentId]: prev[instrumentId].map((val, idx) =>
@@ -104,10 +123,10 @@ export const Sequencer = () => {
     }
   };
 
-  const toggleTrackMute = (instrumentId: string) => {
+  const toggleTrackMute = (instrumentId: InstrumentId) => {
     const track = tracks[instrumentId as keyof typeof tracks];
     if (!track) return;
-    updateTrack(instrumentId as any, { mute: !track.mute });
+    updateTrack(instrumentId as unknown as keyof typeof tracks, { mute: !track.mute });
     toast({
       title: track.mute ? 'Track Unmuted' : 'Track Muted',
       description: `${instrumentId} is now ${track.mute ? 'active' : 'muted'}`
@@ -118,15 +137,18 @@ export const Sequencer = () => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
+        const samples = await generateDrumSamples(audioCtxRef.current);
+        setDrumSamples(samples);
       }
       if (audioCtxRef.current.state === 'suspended') {
         await audioCtxRef.current.resume();
       }
       return audioCtxRef.current;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Audio Context Error',
-        description: error?.message || 'Unable to initialize audio playback.',
+        description: message || 'Unable to initialize audio playback.',
         variant: 'destructive'
       });
       return null;
@@ -155,8 +177,9 @@ export const Sequencer = () => {
       try {
         const loaded = await loadAudioFile(ctx, file);
         nextSamples.push(loaded);
-      } catch (error: any) {
-        errorMessage = `${file.name} could not be decoded: ${error?.message || 'invalid audio file'}`;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        errorMessage = `${file.name} could not be decoded: ${message || 'invalid audio file'}`;
       }
     }
 
@@ -279,15 +302,17 @@ export const Sequencer = () => {
     setCurrentStep(0);
   };
 
-  const playHit = (instrumentId: string) => {
-    if (!audioCtxRef.current) return;
+  // ── playHit: called each step for a triggered instrument ──────
+  const playHit = (instrumentId: InstrumentId) => {
     const ctx = audioCtxRef.current;
-    const now = ctx.currentTime;
+    if (!ctx) return;
 
     const mixState = useMixStore.getState();
     const track = mixState.tracks[instrumentId as keyof typeof mixState.tracks];
     if (!track) return;
-    const soloActive = mixState.anySolo();
+
+    // Mute / Solo check
+    const soloActive = Object.values(mixState.tracks).some(t => t.solo);
     if (track.mute || (soloActive && !track.solo)) return;
 
     const masterGain = (mixState.masterVolume ?? 100) / 100;
@@ -297,6 +322,22 @@ export const Sequencer = () => {
     const widthFactor = mixState.stereoWidth / 100;
     const pan = (track.pan / 50) * widthFactor;
 
+    const now = ctx.currentTime;
+
+    // Prefer user-loaded sample, then built-in sample buffer, then synthesis
+    const assignedSample = loadedSamples.find((sample) => sample.id === track.sampleId);
+    if (assignedSample?.buffer) {
+      playBufferedDrum(ctx, now, assignedSample.buffer, volume, pan, instrumentId);
+      return;
+    }
+
+    const defaultBuffer = getSampleBufferByInstrument(drumSamples, instrumentId);
+    if (defaultBuffer) {
+      playBufferedDrum(ctx, now, defaultBuffer, volume, pan, instrumentId);
+      return;
+    }
+
+    // Fallback to synthesis
     switch (instrumentId) {
       case 'kick':
         playKickDrum(ctx, now, volume, pan);
@@ -322,221 +363,557 @@ export const Sequencer = () => {
     }
   };
 
-  // Professional kick drum synthesis
-  const playKickDrum = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    // Main oscillator for body
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(150, time);
-    osc1.frequency.exponentialRampToValueAtTime(45, time + 0.15);
-
-    gain1.gain.setValueAtTime(volume * 0.8, time);
-    gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
-
-    // Sub oscillator for low end
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(60, time);
-    osc2.frequency.exponentialRampToValueAtTime(30, time + 0.2);
-
-    gain2.gain.setValueAtTime(volume * 0.6, time);
-    gain2.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
-
-    // Click transient
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = 'square';
-    osc3.frequency.setValueAtTime(800, time);
-    osc3.frequency.exponentialRampToValueAtTime(200, time + 0.05);
-
-    gain3.gain.setValueAtTime(volume * 0.3, time);
-    gain3.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-
+  const playBufferedDrum = (ctx: AudioContext, time: number, buffer: AudioBuffer, volume: number, pan: number, instrumentId: InstrumentId) => {
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
     const panner = ctx.createStereoPanner();
-    panner.pan.value = pan;
 
-    osc1.connect(gain1);
-    osc2.connect(gain2);
-    osc3.connect(gain3);
-    gain1.connect(panner);
-    gain2.connect(panner);
-    gain3.connect(panner);
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(1, time);
+
+    const duration = Math.min(buffer.duration, instrumentId === 'kick' ? 0.45 : instrumentId === 'hihat' || instrumentId === 'openhat' ? 0.16 : 0.28);
+
+    filter.type = instrumentId === 'kick' ? 'lowpass' : instrumentId === 'hihat' || instrumentId === 'openhat' ? 'highpass' : 'bandpass';
+    filter.frequency.value = instrumentId === 'kick' ? 1200 : instrumentId === 'hihat' || instrumentId === 'openhat' ? 8000 : 2200;
+    filter.Q.value = instrumentId === 'kick' ? 0.6 : instrumentId === 'snare' ? 0.9 : 1.1;
+
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.linearRampToValueAtTime(Math.max(0.08, volume * 0.95), time + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration + 0.04);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(panner);
     panner.connect(ctx.destination);
 
-    osc1.start(time);
-    osc2.start(time);
-    osc3.start(time);
-    osc1.stop(time + 0.5);
-    osc2.stop(time + 0.5);
-    osc3.stop(time + 0.5);
+    source.start(time);
+    source.stop(time + duration + 0.06);
   };
 
-  // Professional snare drum synthesis
-  const playSnareDrum = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    // Tone oscillators
+  // Professional kick drum synthesis with punch and sub
+  const playKickDrum = (ctx: AudioContext, time: number, volume: number, pan: number) => {
+    const v = volume * 1.8;
+
+    // Bus with compression for glue
+    const bus = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -12;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.1;
+    bus.connect(comp);
+    comp.connect(ctx.destination);
+
+    // Punch body (80Hz -> 40Hz)
     const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
+    const g1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(80, time);
+    osc1.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+    g1.gain.setValueAtTime(v * 0.9, time);
+    g1.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+    osc1.connect(g1);
+    g1.connect(bus);
+    osc1.start(time);
+    osc1.stop(time + 0.35);
+
+    // Sub (55Hz -> 30Hz)
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(55, time);
+    osc2.frequency.exponentialRampToValueAtTime(30, time + 0.25);
+    g2.gain.setValueAtTime(v * 0.85, time);
+    g2.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
+    osc2.connect(g2);
+    g2.connect(bus);
+    osc2.start(time);
+    osc2.stop(time + 0.5);
+
+    // Click transient (200Hz -> 80Hz)
+    const osc3 = ctx.createOscillator();
+    const g3 = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc3.type = 'triangle';
+    osc3.frequency.setValueAtTime(200, time);
+    osc3.frequency.exponentialRampToValueAtTime(80, time + 0.02);
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+    g3.gain.setValueAtTime(v * 0.5, time);
+    g3.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    osc3.connect(filter);
+    filter.connect(g3);
+    g3.connect(bus);
+    osc3.start(time);
+    osc3.stop(time + 0.08);
+
+    // Stereo widener
+    const osc4 = ctx.createOscillator();
+    const g4 = ctx.createGain();
+    osc4.type = 'sine';
+    osc4.frequency.setValueAtTime(52, time);
+    g4.gain.setValueAtTime(v * 0.35, time);
+    g4.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+    const panNode = ctx.createStereoPanner();
+    panNode.pan.value = pan;
+    osc4.connect(g4);
+    g4.connect(panNode);
+    panNode.connect(bus);
+    osc4.start(time);
+    osc4.stop(time + 0.4);
+  };
+
+  // Professional snare drum synthesis with body and crack
+  const playSnareDrum = (ctx: AudioContext, time: number, volume: number, pan: number) => {
+    const v = volume * 1.6;
+
+    // Bus with compression
+    const bus = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.ratio.value = 6;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.12;
+    bus.connect(comp);
+    comp.connect(ctx.destination);
+
+    // Tone body (180Hz -> 100Hz)
+    const osc1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
     osc1.type = 'triangle';
-    osc1.frequency.setValueAtTime(200, time);
-    osc1.frequency.exponentialRampToValueAtTime(150, time + 0.1);
+    osc1.frequency.setValueAtTime(180, time);
+    osc1.frequency.exponentialRampToValueAtTime(100, time + 0.12);
+    g1.gain.setValueAtTime(v * 0.5, time);
+    g1.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    osc1.connect(g1);
+    g1.connect(bus);
+    osc1.start(time);
+    osc1.stop(time + 0.25);
 
-    gain1.gain.setValueAtTime(volume * 0.4, time);
-    gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    // Overtone (320Hz -> 180Hz)
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(320, time);
+    osc2.frequency.exponentialRampToValueAtTime(180, time + 0.06);
+    g2.gain.setValueAtTime(v * 0.3, time);
+    g2.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc2.connect(g2);
+    g2.connect(bus);
+    osc2.start(time);
+    osc2.stop(time + 0.12);
 
-    // Noise for snap
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+    // Noise for snap (brushed)
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.12, ctx.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = Math.random() * 2 - 1;
+      noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
     }
-
     const noiseSource = ctx.createBufferSource();
     const noiseGain = ctx.createGain();
     const noiseFilter = ctx.createBiquadFilter();
-
     noiseSource.buffer = noiseBuffer;
     noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 2000;
-    noiseGain.gain.setValueAtTime(volume * 0.6, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
-
-    const panner = ctx.createStereoPanner();
-    panner.pan.value = pan;
-
-    osc1.connect(gain1);
+    noiseFilter.frequency.value = 2500;
+    noiseGain.gain.setValueAtTime(v * 0.7, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
-    gain1.connect(panner);
-    noiseGain.connect(panner);
-    panner.connect(ctx.destination);
-
-    osc1.start(time);
+    noiseGain.connect(bus);
     noiseSource.start(time);
-    osc1.stop(time + 0.3);
-    noiseSource.stop(time + 0.3);
+    noiseSource.stop(time + 0.15);
+
+    // Crack (sharp attack)
+    const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.025, ctx.sampleRate);
+    const crackData = crackBuffer.getChannelData(0);
+    for (let i = 0; i < crackData.length; i++) {
+      crackData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.008));
+    }
+    const crackSource = ctx.createBufferSource();
+    const crackGain = ctx.createGain();
+    const crackFilter = ctx.createBiquadFilter();
+    crackSource.buffer = crackBuffer;
+    crackFilter.type = 'bandpass';
+    crackFilter.frequency.value = 4500;
+    crackFilter.Q.value = 2;
+    crackGain.gain.setValueAtTime(v * 0.8, time);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    crackSource.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(bus);
+    crackSource.start(time);
+    crackSource.stop(time + 0.05);
+
+    // Tail/ring
+    const tailBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
+    const tailData = tailBuffer.getChannelData(0);
+    for (let i = 0; i < tailData.length; i++) {
+      tailData[i] = (Math.random() * 2 - 1) * (1 - i / tailData.length);
+    }
+    const tailSource = ctx.createBufferSource();
+    const tailGain = ctx.createGain();
+    const tailFilter = ctx.createBiquadFilter();
+    tailSource.buffer = tailBuffer;
+    tailFilter.type = 'bandpass';
+    tailFilter.frequency.value = 3800;
+    tailFilter.Q.value = 0.8;
+    tailGain.gain.setValueAtTime(v * 0.3, time + 0.005);
+    tailGain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+    tailSource.connect(tailFilter);
+    tailFilter.connect(tailGain);
+    tailGain.connect(bus);
+    tailSource.start(time);
+    tailSource.stop(time + 0.2);
+
+    // Stereo panning
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = pan;
+    bus.disconnect();
+    bus.connect(panner);
+    panner.connect(comp);
   };
 
   // Hi-hat synthesis
+  // Professional closed hi-hat with crisp attack
   const playHiHat = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseData.length);
+    const v = volume * 1.7;
+
+    // Bright top (air)
+    const buf1 = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+    const dat1 = buf1.getChannelData(0);
+    for (let i = 0; i < dat1.length; i++) {
+      dat1[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
     }
+    const src1 = ctx.createBufferSource();
+    const gn1 = ctx.createGain();
+    const fil1 = ctx.createBiquadFilter();
+    src1.buffer = buf1;
+    fil1.type = 'highpass';
+    fil1.frequency.value = 8500;
+    gn1.gain.setValueAtTime(v * 0.9, time);
+    gn1.gain.exponentialRampToValueAtTime(0.001, time + 0.055);
+    src1.connect(fil1);
+    fil1.connect(gn1);
+    src1.start(time);
+    src1.stop(time + 0.07);
 
-    const noiseSource = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    const noiseFilter = ctx.createBiquadFilter();
+    // Mid presence
+    const buf2 = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+    const dat2 = buf2.getChannelData(0);
+    for (let i = 0; i < dat2.length; i++) {
+      dat2[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
+    }
+    const src2 = ctx.createBufferSource();
+    const gn2 = ctx.createGain();
+    const fil2 = ctx.createBiquadFilter();
+    src2.buffer = buf2;
+    fil2.type = 'bandpass';
+    fil2.frequency.value = 7000;
+    fil2.Q.value = 1.2;
+    gn2.gain.setValueAtTime(v * 0.6, time);
+    gn2.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    src2.connect(fil2);
+    fil2.connect(gn2);
+    src2.start(time);
+    src2.stop(time + 0.055);
 
-    noiseSource.buffer = noiseBuffer;
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 7000;
-    noiseGain.gain.setValueAtTime(volume, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    // Attack click
+    const buf3 = ctx.createBuffer(1, ctx.sampleRate * 0.015, ctx.sampleRate);
+    const dat3 = buf3.getChannelData(0);
+    for (let i = 0; i < dat3.length; i++) {
+      dat3[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
+    }
+    const src3 = ctx.createBufferSource();
+    const gn3 = ctx.createGain();
+    const fil3 = ctx.createBiquadFilter();
+    src3.buffer = buf3;
+    fil3.type = 'highpass';
+    fil3.frequency.value = 4000;
+    gn3.gain.setValueAtTime(v * 0.75, time);
+    gn3.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    src3.connect(fil3);
+    fil3.connect(gn3);
+    src3.start(time);
+    src3.stop(time + 0.03);
 
     const panner = ctx.createStereoPanner();
     panner.pan.value = pan;
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(panner);
+    gn1.connect(panner);
+    gn2.connect(panner);
+    gn3.connect(panner);
     panner.connect(ctx.destination);
-
-    noiseSource.start(time);
-    noiseSource.stop(time + 0.1);
   };
 
   // Open hi-hat synthesis
+  // Professional open hi-hat with shimmer and decay
   const playOpenHat = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.25, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseData.length);
+    const v = volume * 1.2;
+    const duration = 0.5;
+
+    // Bus with glue compression
+    const bus = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.ratio.value = 3;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.15;
+    bus.connect(comp);
+    comp.connect(ctx.destination);
+
+    // Layer 1: Bright top sizzle (very high)
+    const noiseBuffer1 = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const noiseData1 = noiseBuffer1.getChannelData(0);
+    for (let i = 0; i < noiseData1.length; i++) {
+      const env = Math.exp(-i / (noiseData1.length * 0.12));
+      noiseData1[i] = (Math.random() * 2 - 1) * env;
     }
+    const source1 = ctx.createBufferSource();
+    const filter1 = ctx.createBiquadFilter();
+    const gain1 = ctx.createGain();
+    source1.buffer = noiseBuffer1;
+    filter1.type = 'highpass';
+    filter1.frequency.value = 8500;
+    gain1.gain.setValueAtTime(v * 0.6, time);
+    gain1.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    source1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(bus);
+    source1.start(time);
+    source1.stop(time + duration);
 
-    const noiseSource = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    const noiseFilter = ctx.createBiquadFilter();
+    // Layer 2: Mid presence (metallic)
+    const noiseBuffer2 = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const noiseData2 = noiseBuffer2.getChannelData(0);
+    for (let i = 0; i < noiseData2.length; i++) {
+      noiseData2[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseData2.length * 0.15));
+    }
+    const source2 = ctx.createBufferSource();
+    const filter2 = ctx.createBiquadFilter();
+    const gain2 = ctx.createGain();
+    source2.buffer = noiseBuffer2;
+    filter2.type = 'bandpass';
+    filter2.frequency.value = 4500;
+    filter2.Q.value = 1.5;
+    gain2.gain.setValueAtTime(v * 0.5, time);
+    gain2.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    source2.connect(filter2);
+    filter2.connect(gain2);
+    gain2.connect(bus);
+    source2.start(time);
+    source2.stop(time + duration);
 
-    noiseSource.buffer = noiseBuffer;
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 6000;
-    noiseGain.gain.setValueAtTime(volume, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    // Layer 3: Sub rumble tail
+    const osc = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, time);
+    osc.frequency.exponentialRampToValueAtTime(90, time + duration * 0.5);
+    gain3.gain.setValueAtTime(v * 0.15, time);
+    gain3.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.4);
+    osc.connect(gain3);
+    gain3.connect(bus);
+    osc.start(time);
+    osc.stop(time + duration);
 
+    // Stereo panner
     const panner = ctx.createStereoPanner();
     panner.pan.value = pan;
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(panner);
+    bus.disconnect();
+    bus.connect(panner);
     panner.connect(ctx.destination);
-
-    noiseSource.start(time);
-    noiseSource.stop(time + 0.25);
   };
 
-  // Clap synthesis
+  // Professional clap synthesis with multiple attack transients
   const playClap = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * Math.sin(i * 0.1);
+    const v = volume * 1.4;
+    const duration = 0.25;
+
+    // Bus with glue compression
+    const bus = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -15;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.002;
+    comp.release.value = 0.12;
+    bus.connect(comp);
+    comp.connect(ctx.destination);
+
+    // Layer 1: Pre-pop body
+    const noiseBuffer1 = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+    const noiseData1 = noiseBuffer1.getChannelData(0);
+    for (let i = 0; i < noiseData1.length; i++) {
+      const env = Math.exp(-i / (noiseData1.length * 0.3));
+      noiseData1[i] = (Math.random() * 2 - 1) * env;
     }
+    const source1 = ctx.createBufferSource();
+    const filter1 = ctx.createBiquadFilter();
+    const gain1 = ctx.createGain();
+    source1.buffer = noiseBuffer1;
+    filter1.type = 'bandpass';
+    filter1.frequency.value = 1200;
+    filter1.Q.value = 1;
+    gain1.gain.setValueAtTime(v * 0.5, time);
+    gain1.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    source1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(bus);
+    source1.start(time);
+    source1.stop(time + 0.08);
 
-    const noiseSource = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    const noiseFilter = ctx.createBiquadFilter();
+    // Layer 2: Attack transient burst
+    const noiseBuffer2 = ctx.createBuffer(1, ctx.sampleRate * 0.015, ctx.sampleRate);
+    const noiseData2 = noiseBuffer2.getChannelData(0);
+    for (let i = 0; i < noiseData2.length; i++) {
+      const env = Math.exp(-i / (noiseData2.length * 0.1));
+      noiseData2[i] = (Math.random() * 2 - 1) * env;
+    }
+    const source2 = ctx.createBufferSource();
+    const filter2 = ctx.createBiquadFilter();
+    const gain2 = ctx.createGain();
+    source2.buffer = noiseBuffer2;
+    filter2.type = 'highpass';
+    filter2.frequency.value = 2000;
+    gain2.gain.setValueAtTime(v * 0.9, time + 0.008);
+    gain2.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    source2.connect(filter2);
+    filter2.connect(gain2);
+    gain2.connect(bus);
+    source2.start(time + 0.008);
+    source2.stop(time + 0.05);
 
-    noiseSource.buffer = noiseBuffer;
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = 1500;
-    noiseFilter.Q.value = 2;
-    noiseGain.gain.setValueAtTime(volume * 0.8, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    // Layer 3: Main body with tail
+    const noiseBuffer3 = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const noiseData3 = noiseBuffer3.getChannelData(0);
+    for (let i = 0; i < noiseData3.length; i++) {
+      const env = Math.exp(-i / (noiseData3.length * 0.25));
+      noiseData3[i] = (Math.random() * 2 - 1) * env;
+    }
+    const source3 = ctx.createBufferSource();
+    const filter3 = ctx.createBiquadFilter();
+    const gain3 = ctx.createGain();
+    source3.buffer = noiseBuffer3;
+    filter3.type = 'bandpass';
+    filter3.frequency.value = 2500;
+    filter3.Q.value = 0.7;
+    gain3.gain.setValueAtTime(v * 0.7, time + 0.01);
+    gain3.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    source3.connect(filter3);
+    filter3.connect(gain3);
+    gain3.connect(bus);
+    source3.start(time + 0.01);
+    source3.stop(time + duration);
 
+    // Stereo panner
     const panner = ctx.createStereoPanner();
     panner.pan.value = pan;
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(panner);
+    bus.disconnect();
+    bus.connect(panner);
     panner.connect(ctx.destination);
-
-    noiseSource.start(time);
-    noiseSource.stop(time + 0.15);
   };
 
-  // Crash cymbal synthesis
+  // Professional crash cymbal with shimmer and long decay
   const playCrash = (ctx: AudioContext, time: number, volume: number, pan: number) => {
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.8, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseData.length * 0.3));
+    const v = volume * 1.3;
+    const duration = 2.5;
+
+    // Bus with glue compression
+    const bus = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -20;
+    comp.ratio.value = 2.5;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.25;
+    bus.connect(comp);
+    comp.connect(ctx.destination);
+
+    // Layer 1: High shimmer (bell-like)
+    const noiseBuffer1 = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const noiseData1 = noiseBuffer1.getChannelData(0);
+    for (let i = 0; i < noiseData1.length; i++) {
+      const env = Math.exp(-i / (noiseData1.length * 0.4));
+      // Add some tonal component
+      const tone = Math.sin(i * 0.05) * 0.3;
+      noiseData1[i] = ((Math.random() * 2 - 1) + tone) * env;
     }
+    const source1 = ctx.createBufferSource();
+    const filter1 = ctx.createBiquadFilter();
+    const gain1 = ctx.createGain();
+    source1.buffer = noiseBuffer1;
+    filter1.type = 'highpass';
+    filter1.frequency.value = 6000;
+    filter1.Q.value = 0.5;
+    gain1.gain.setValueAtTime(v * 0.55, time);
+    gain1.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.9);
+    source1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(bus);
+    source1.start(time);
+    source1.stop(time + duration);
 
-    const noiseSource = ctx.createBufferSource();
-    const noiseGain = ctx.createGain();
-    const noiseFilter = ctx.createBiquadFilter();
+    // Layer 2: Mid wash (main body)
+    const noiseBuffer2 = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+    const noiseData2 = noiseBuffer2.getChannelData(0);
+    for (let i = 0; i < noiseData2.length; i++) {
+      const env = Math.exp(-i / (noiseData2.length * 0.35));
+      noiseData2[i] = (Math.random() * 2 - 1) * env;
+    }
+    const source2 = ctx.createBufferSource();
+    const filter2 = ctx.createBiquadFilter();
+    const gain2 = ctx.createGain();
+    source2.buffer = noiseBuffer2;
+    filter2.type = 'highpass';
+    filter2.frequency.value = 3500;
+    filter2.Q.value = 0.3;
+    gain2.gain.setValueAtTime(v * 0.6, time);
+    gain2.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.85);
+    source2.connect(filter2);
+    filter2.connect(gain2);
+    gain2.connect(bus);
+    source2.start(time);
+    source2.stop(time + duration);
 
-    noiseSource.buffer = noiseBuffer;
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 3000;
-    noiseGain.gain.setValueAtTime(volume, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+    // Layer 3: Low shoulder (weight)
+    const noiseBuffer3 = ctx.createBuffer(1, ctx.sampleRate * duration * 0.6, ctx.sampleRate);
+    const noiseData3 = noiseBuffer3.getChannelData(0);
+    for (let i = 0; i < noiseData3.length; i++) {
+      const env = Math.exp(-i / (noiseData3.length * 0.2));
+      noiseData3[i] = (Math.random() * 2 - 1) * env;
+    }
+    const source3 = ctx.createBufferSource();
+    const filter3 = ctx.createBiquadFilter();
+    const gain3 = ctx.createGain();
+    source3.buffer = noiseBuffer3;
+    filter3.type = 'bandpass';
+    filter3.frequency.value = 1200;
+    filter3.Q.value = 0.5;
+    gain3.gain.setValueAtTime(v * 0.35, time);
+    gain3.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.5);
+    source3.connect(filter3);
+    filter3.connect(gain3);
+    gain3.connect(bus);
+    source3.start(time);
+    source3.stop(time + duration * 0.6);
 
+    // Layer 4: Sub harmonic
+    const osc = ctx.createOscillator();
+    const gain4 = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, time);
+    osc.frequency.exponentialRampToValueAtTime(110, time + duration * 0.3);
+    gain4.gain.setValueAtTime(v * 0.2, time);
+    gain4.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.35);
+    osc.connect(gain4);
+    gain4.connect(bus);
+    osc.start(time);
+    osc.stop(time + duration * 0.4);
+
+    // Stereo panner
     const panner = ctx.createStereoPanner();
     panner.pan.value = pan;
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(panner);
+    bus.disconnect();
+    bus.connect(panner);
     panner.connect(ctx.destination);
-
-    noiseSource.start(time);
-    noiseSource.stop(time + 0.8);
   };
 
   // Percussion synthesis
@@ -611,7 +988,7 @@ export const Sequencer = () => {
         setPattern(detail.pattern);
       }
       if (detail?.bpm) {
-        setBpm(detail.bpm);
+        setBpm(Number(detail.bpm));
       }
     };
 
@@ -644,6 +1021,20 @@ export const Sequencer = () => {
   };
 
 
+  const applyGeneratorPreset = (preset: (typeof generatorPresets)[number]) => {
+    setSelectedGenre(preset.genre);
+    setSelectedMood(preset.mood);
+    setSelectedStyle(preset.style);
+    setComplexity(preset.complexity);
+    setDensity(preset.density);
+    setLastGenerationSummary(`${preset.label}: ${preset.blurb}`);
+
+    toast({
+      title: 'Preset Applied',
+      description: `${preset.label} is ready to generate.`
+    });
+  };
+
   const randomizePreset = () => {
     const randomGenre = genreOptions[Math.floor(Math.random() * genreOptions.length)];
     const randomComplexity = Math.floor(Math.random() * 100);
@@ -652,6 +1043,7 @@ export const Sequencer = () => {
     setSelectedGenre(randomGenre);
     setComplexity(randomComplexity);
     setDensity(randomDensity);
+    setLastGenerationSummary(`${randomGenre} • ${selectedMood} • ${selectedStyle}`);
 
     toast({
       title: 'Preset Randomized',
@@ -686,6 +1078,9 @@ export const Sequencer = () => {
         seed
       });
 
+      const promptSummary = `${selectedGenre} • ${selectedMood} • ${selectedStyle} • complexity ${complexity}% • density ${density}%`;
+      setLastGenerationSummary(promptSummary);
+
       // Map pattern into UI state
       setPattern(result.pattern);
       if (result.bpm) {
@@ -695,9 +1090,9 @@ export const Sequencer = () => {
       // Persist the sample mapping to use during playback (store in tracks)
       if (result.sampleMapping) {
         Object.entries(result.sampleMapping).forEach(([inst, sampleId]) => {
-          const track = tracks[inst as keyof typeof tracks];
-          if (track) {
-            updateTrack(inst as any, { sampleId });
+          const trackKey = inst as keyof typeof tracks;
+          if (trackKey in tracks) {
+            updateTrack(trackKey, { sampleId: String(sampleId) });
           }
         });
       }
@@ -706,11 +1101,12 @@ export const Sequencer = () => {
         title: 'AI Beat Generated!',
         description: `${selectedGenre} pattern created with ${complexity}% complexity`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AI beat generation error:', error);
+      const message = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Generation Failed',
-        description: error.message || 'Please try again',
+        description: message || 'Please try again',
         variant: 'destructive'
       });
     } finally {
@@ -746,6 +1142,7 @@ export const Sequencer = () => {
                   min="90"
                   max="140"
                   value={bpm}
+                  aria-label="BPM"
                   onChange={(e) => setBpm(parseInt(e.target.value))}
                   className="w-36 h-2 bg-[#16162a] rounded-lg appearance-none cursor-pointer slider-purple"
                 />
@@ -905,8 +1302,8 @@ export const Sequencer = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleTrackMute(instrument.id)}
+                      aria-label={tracks[instrument.id]?.mute ? 'Unmute track' : 'Mute track'}
                       className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${tracks[instrument.id]?.mute ? 'bg-red-500 border-red-400 text-black' : 'bg-[#1a1a2e] border border-studio-border hover:bg-studio-surface text-white'}`}
-                      title={tracks[instrument.id]?.mute ? 'Unmute track' : 'Mute track'}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
@@ -923,6 +1320,7 @@ export const Sequencer = () => {
                     <button
                       key={stepIndex}
                       onClick={() => toggleStep(instrument.id, stepIndex)}
+                      aria-label={`${instrument.name} step ${stepIndex + 1} ${active ? '(on)' : '(off)'}`}
                       className={`
                         h-12 rounded-lg border-2 transition-all
                         ${active
@@ -941,145 +1339,204 @@ export const Sequencer = () => {
         </div>
 
         {/* AI Beat Generator Section */}
-        <div className="grid grid-cols-[1fr_auto] gap-4">
-          {/* Generator Controls */}
-          <div className="glass-panel rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">🤖</span>
-              <h3 className="text-lg font-bold text-purple-400 uppercase tracking-wider">AI Beat Generator</h3>
+        <div className="space-y-4">
+          <div className="glass-panel rounded-2xl border border-purple-500/20 p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🤖</span>
+                  <h3 className="text-lg font-bold text-purple-400 uppercase tracking-wider">AI Beat Generator</h3>
+                </div>
+                <p className="text-sm text-gray-400">Create polished beat ideas with a guided flow that feels closer to a modern AI music studio.</p>
+              </div>
+              <div className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-cyan-300">
+                {lastGenerationSummary ? 'Last prompt ready' : 'Ready to generate'}
+              </div>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr_1fr_1fr_auto] gap-4 items-center">
-              {/* Genre Selector */}
-              <div>
-                <select
-                  aria-label="Select genre"
-                  value={selectedGenre}
-                  onChange={(e) => setSelectedGenre(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
-                >
-                  {genreOptions.map(genre => (
-                    <option key={genre} value={genre}>{genre}</option>
-                  ))}
-                </select>
+            <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-4">
+                <div className="rounded-xl border border-studio-border bg-[#14172b] p-4">
+                  <div className="text-sm font-semibold text-white mb-3">Creative direction</div>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <label className="space-y-2 text-sm text-gray-300">
+                      <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Genre</span>
+                      <select
+                        aria-label="Select genre"
+                        value={selectedGenre}
+                        onChange={(e) => setSelectedGenre(e.target.value)}
+                        className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                      >
+                        {genreOptions.map(genre => (
+                          <option key={genre} value={genre}>{genre}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2 text-sm text-gray-300">
+                      <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Mood</span>
+                      <select
+                        aria-label="Select mood"
+                        value={selectedMood}
+                        onChange={(e) => setSelectedMood(e.target.value)}
+                        className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                      >
+                        {moodOptions.map(mood => (
+                          <option key={mood} value={mood}>{mood}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2 text-sm text-gray-300">
+                      <span className="block text-[11px] uppercase tracking-[0.2em] text-gray-500">Style</span>
+                      <select
+                        aria-label="Select style"
+                        value={selectedStyle}
+                        onChange={(e) => setSelectedStyle(e.target.value)}
+                        className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-neon-cyan"
+                      >
+                        {styleOptions.map(style => (
+                          <option key={style} value={style}>{style}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {generatorPresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => applyGeneratorPreset(preset)}
+                        className="rounded-full border border-studio-border bg-[#1a1a2e] px-3 py-2 text-left text-sm text-gray-200 transition hover:border-purple-400/50 hover:text-white"
+                      >
+                        <div className="font-semibold">{preset.label}</div>
+                        <div className="text-[11px] text-gray-500">{preset.blurb}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-studio-border bg-[#14172b] p-4">
+                  <div className="text-sm font-semibold text-white mb-3">Energy controls</div>
+                  <div className="space-y-4">
+                    <label className="block text-sm text-gray-300">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span>Complexity</span>
+                        <span className="text-cyan-300">{complexity}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="20"
+                        max="100"
+                        value={complexity}
+                        onChange={(e) => setComplexity(Number(e.target.value))}
+                        className="w-full h-2 bg-[#16162a] rounded-lg appearance-none cursor-pointer slider-cyan"
+                      />
+                    </label>
+                    <label className="block text-sm text-gray-300">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span>Density</span>
+                        <span className="text-purple-300">{density}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="20"
+                        max="100"
+                        value={density}
+                        onChange={(e) => setDensity(Number(e.target.value))}
+                        className="w-full h-2 bg-[#16162a] rounded-lg appearance-none cursor-pointer slider-purple"
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
 
-              {/* Mood Selector */}
-              <div>
-                <select
-                  aria-label="Select mood"
-                  value={selectedMood}
-                  onChange={(e) => setSelectedMood(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500"
-                >
-                  {moodOptions.map(mood => (
-                    <option key={mood} value={mood}>{mood}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-purple-500/20 bg-purple-500/10 p-4">
+                  <div className="text-sm font-semibold text-white mb-2">Generation flow</div>
+                  <div className="rounded-lg border border-purple-500/20 bg-[#11141f] p-3 text-sm text-purple-100">
+                    {lastGenerationSummary || `${selectedGenre} • ${selectedMood} • ${selectedStyle}`}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      onClick={generateAIBeat}
+                      disabled={isGenerating}
+                      className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="flex gap-1 mr-2">
+                            {[...Array(3)].map((_, i) => (
+                              <div
+                                key={i}
+                                className="w-1 h-4 bg-white rounded-full animate-waveform"
+                              />
+                            ))}
+                          </div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate AI Beat
+                        </>
+                      )}
+                    </Button>
+                    <Button onClick={saveToLibrary} variant="outline" className="border-studio-border bg-[#1a1a2e] hover:bg-studio-surface">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Variation
+                    </Button>
+                    <Button onClick={randomizePreset} variant="outline" className="border-studio-border bg-[#1a1a2e] hover:bg-studio-surface">
+                      <Shuffle className="w-4 h-4 mr-2" />
+                      Shuffle Vibe
+                    </Button>
+                  </div>
+                </div>
 
-              {/* Style Selector */}
-              <div>
-                <select
-                  aria-label="Select style"
-                  value={selectedStyle}
-                  onChange={(e) => setSelectedStyle(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-studio-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan"
-                >
-                  {styleOptions.map(style => (
-                    <option key={style} value={style}>{style}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Generate Button */}
-              <Button
-                onClick={generateAIBeat}
-                disabled={isGenerating}
-                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 h-12 px-6"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="flex gap-1 mr-2">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1 h-4 bg-white rounded-full animate-waveform"
-                          style={{ animationDelay: `${i * 0.15}s` }}
-                        />
+                <div className="glass-panel rounded-xl p-4">
+                  <div className="text-sm text-gray-400 mb-2">Saved Patterns</div>
+                  <div className="flex items-center gap-3">
+                    <select
+                      aria-label="Select saved pattern"
+                      value={selectedSavedPatternId}
+                      onChange={(e) => loadSavedPattern(e.target.value)}
+                      className="flex-1 bg-[#1a1a2e] border border-studio-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="">Choose saved pattern</option>
+                      {savedPatterns.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
                       ))}
-                    </div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate AI Beat
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+                    </select>
+                    <Button
+                      onClick={() => {
+                        if (selectedSavedPatternId) loadSavedPattern(selectedSavedPatternId);
+                      }}
+                      variant="outline"
+                      className="h-12 px-4"
+                    >
+                      Load
+                    </Button>
+                  </div>
+                </div>
 
-          <div className="glass-panel rounded-lg p-4">
-            <div className="text-sm text-gray-400 mb-2">Saved Patterns</div>
-            <div className="flex items-center gap-3">
-              <select
-                aria-label="Select saved pattern"
-                value={selectedSavedPatternId}
-                onChange={(e) => loadSavedPattern(e.target.value)}
-                className="flex-1 bg-[#1a1a2e] border border-studio-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500"
-              >
-                <option value="">Choose saved pattern</option>
-                {savedPatterns.map(item => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-              <Button
-                onClick={() => {
-                  if (selectedSavedPatternId) loadSavedPattern(selectedSavedPatternId);
-                }}
-                variant="outline"
-                className="h-12 px-4"
-              >
-                Load
-              </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={clearAll}
+                    variant="outline"
+                    className="bg-[#1a1a2e] border-studio-border hover:bg-studio-surface h-[calc(50%-6px)]"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                  <Button
+                    onClick={invertAll}
+                    variant="outline"
+                    className="bg-[#1a1a2e] border-studio-border hover:bg-studio-surface h-[calc(50%-6px)]"
+                  >
+                    <FlipVertical className="w-4 h-4 mr-2" />
+                    Invert All
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* Action Buttons Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={saveToLibrary}
-              className="bg-purple-600 hover:bg-purple-700 h-[calc(50%-6px)]"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save to Library
-            </Button>
-            <Button
-              onClick={randomizePreset}
-              variant="outline"
-              className="bg-[#1a1a2e] border-studio-border hover:bg-studio-surface h-[calc(50%-6px)]"
-            >
-              <Shuffle className="w-4 h-4 mr-2" />
-              Randomize (Preset)
-            </Button>
-            <Button
-              onClick={clearAll}
-              variant="outline"
-              className="bg-[#1a1a2e] border-studio-border hover:bg-studio-surface h-[calc(50%-6px)]"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear All
-            </Button>
-            <Button
-              onClick={invertAll}
-              variant="outline"
-              className="bg-[#1a1a2e] border-studio-border hover:bg-studio-surface h-[calc(50%-6px)]"
-            >
-              <FlipVertical className="w-4 h-4 mr-2" />
-              Invert All
-            </Button>
           </div>
         </div>
       </div>
